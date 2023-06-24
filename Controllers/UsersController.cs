@@ -22,8 +22,16 @@ public class UsersController : ControllerBase
                 userDTO.Username,
                 userDTO.Password
                 );
-        await _context.Users.AddAsync(user);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.Users.AddAsync(user);
+            await _context.SaveChangesAsync();
+
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
         return Ok(user);
     }
 
