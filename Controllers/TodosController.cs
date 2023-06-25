@@ -8,7 +8,6 @@ using TodoBackend.Models;
 namespace TodoBackend.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
 public class TodosController : ControllerBase
 {
     private readonly TodosDbContext _context;

@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 
 namespace TodoBackend.Controllers;
 
+[ApiController]
 public class UsersController : ControllerBase
 {
     private readonly TodosDbContext _context;
