@@ -19,21 +19,26 @@ public class UsersController : ControllerBase
     [HttpPost("/register")]
     public async Task<IActionResult> Register([FromBody] UserDTO userDTO)
     {
-        User user = new User(
-                userDTO.Username,
-                userDTO.Password
-                );
-        try
+        User registeredUser = await _context.Users.FirstOrDefaultAsync(a => a.Username == userDTO.Username);
+        if (registeredUser is null)
         {
-            await _context.Users.AddAsync(user);
-            await _context.SaveChangesAsync();
+            User user = new User(
+                    userDTO.Username,
+                    userDTO.Password
+                    );
+            try
+            {
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
 
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            return Ok(user);
         }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        return Ok(user);
+        return BadRequest();
     }
 
     [HttpPost("/login")]
