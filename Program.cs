@@ -1,6 +1,9 @@
 using TodoBackend.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using HealthChecks.UI.Client;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +16,11 @@ builder.Services.AddControllers().AddJsonOptions(a => a.JsonSerializerOptions.Re
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Healthcheck
+builder.Services.AddHealthChecks().AddNpgSql(builder.Configuration.GetConnectionString("TodoBackend"), tags: new string[] { "db" }).AddCheck("TodoBackend", () =>
+        HealthCheckResult.Healthy()
+        , new string[] { "main" });
 
 var app = builder.Build();
 
@@ -35,5 +43,12 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// map healthcheck
+app.MapHealthChecks("/healthcheck", new HealthCheckOptions()
+{
+    Predicate = _ => true,
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 
 app.Run();
