@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using TodoBackend.Data;
 using TodoBackend.DTO;
 using TodoBackend.Models;
-using System.Security.Cryptography;
+using TodoBackend.Services;
 
 namespace TodoBackend.Controllers;
 
@@ -11,9 +12,12 @@ namespace TodoBackend.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly TodosDbContext _context;
-    public UsersController(TodosDbContext context)
+    private readonly ICacheService _cacheService;
+    private readonly DateTimeOffset expTime = DateTimeOffset.Now.AddSeconds(30);
+    public UsersController(TodosDbContext context, ICacheService cacheService)
     {
         _context = context;
+        _cacheService = cacheService;
     }
 
     [HttpPost("/register")]
@@ -36,7 +40,7 @@ public class UsersController : ControllerBase
             {
                 return BadRequest(ex.Message);
             }
-            return Ok(user);
+            return NoContent();
         }
         return BadRequest();
     }
@@ -44,11 +48,17 @@ public class UsersController : ControllerBase
     [HttpPost("/login")]
     public async Task<IActionResult> Login([FromBody] UserDTO userDTO)
     {
+        User cachedUser = _cacheService.Get<User>($"{userDTO.Username}");
+        if (cachedUser is not null)
+            return Ok(cachedUser);
         User user = await _context.Users.Include(a => a.Todos).FirstOrDefaultAsync(a => a.Username == userDTO.Username && a.Password == userDTO.Password);
         if (user is null)
         {
             return NotFound();
         }
+        bool isCached = _cacheService.Set<User>($"{user.Username}", user, this.expTime);
+        if (!isCached)
+            Log.Warning("I tried to cache user information but failed");
         return Ok(user);
     }
 }
