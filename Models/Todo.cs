@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace TodoBackend.Models;
 
@@ -17,6 +18,7 @@ public class Todo
     public bool IsFinished { get; set; } = false;
     public string Description { get; set; } = "";
     public int UserId { get; set; }
+    [JsonIgnore]
     public User User { get; set; }
 
 

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Serilog;
 using TodoBackend.Data;
 using TodoBackend.DTO;
@@ -14,10 +15,12 @@ public class UsersController : ControllerBase
     private readonly TodosDbContext _context;
     private readonly ICacheService _cacheService;
     private readonly DateTimeOffset expTime = DateTimeOffset.Now.AddSeconds(30);
-    public UsersController(TodosDbContext context, ICacheService cacheService)
+    private readonly IJwtService _jwtService;
+    public UsersController(TodosDbContext context, ICacheService cacheService, IJwtService jwtService)
     {
         _context = context;
         _cacheService = cacheService;
+        _jwtService = jwtService;
     }
 
     [HttpPost("/register")]
@@ -32,17 +35,17 @@ public class UsersController : ControllerBase
                     );
             try
             {
-                await _context.Users.AddAsync(user);
+                EntityEntry<User> result = await _context.Users.AddAsync(user);
+                string jwtToken = await _jwtService.GenerateJwt(result.Entity);
                 await _context.SaveChangesAsync();
-
+                return Created("/login", result);
             }
             catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
-            return NoContent();
         }
-        return BadRequest();
+        return BadRequest("There is already a user with that username");
     }
 
     [HttpPost("/login")]
@@ -50,8 +53,11 @@ public class UsersController : ControllerBase
     {
         User cachedUser = _cacheService.Get<User>($"{userDTO.Username}");
         if (cachedUser is not null)
-            return Ok(cachedUser);
-        User user = await _context.Users.Include(a => a.Todos).FirstOrDefaultAsync(a => a.Username == userDTO.Username && a.Password == userDTO.Password);
+        {
+            string CjwtToken = await _jwtService.GenerateJwt(cachedUser);
+            return Ok(CjwtToken);
+        }
+        User user = await _context.Users.FirstOrDefaultAsync(a => a.Username == userDTO.Username && a.Password == userDTO.Password);
         if (user is null)
         {
             return NotFound();
@@ -59,6 +65,7 @@ public class UsersController : ControllerBase
         bool isCached = _cacheService.Set<User>($"{user.Username}", user, this.expTime);
         if (!isCached)
             Log.Warning("I tried to cache user information but failed");
-        return Ok(user);
+        string jwtToken = await _jwtService.GenerateJwt(user);
+        return Ok(jwtToken);
     }
 }
