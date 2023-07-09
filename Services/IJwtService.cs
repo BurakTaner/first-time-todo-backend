@@ -4,5 +4,5 @@ namespace TodoBackend.Services;
 
 public interface IJwtService
 {
-    Task<string> GenerateJwt(User user);
+    string GenerateJwt(User user);
 }

@@ -35,10 +35,9 @@ public class UsersController : ControllerBase
                     );
             try
             {
-                EntityEntry<User> result = await _context.Users.AddAsync(user);
-                string jwtToken = await _jwtService.GenerateJwt(result.Entity);
+                await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
-                return Created("/login", result);
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -54,8 +53,12 @@ public class UsersController : ControllerBase
         User cachedUser = _cacheService.Get<User>($"{userDTO.Username}");
         if (cachedUser is not null)
         {
-            string CjwtToken = await _jwtService.GenerateJwt(cachedUser);
-            return Ok(CjwtToken);
+            string CjwtToken = _jwtService.GenerateJwt(cachedUser);
+            return Ok(new AuthResponse()
+            {
+                Token = CjwtToken,
+                Result = true
+            });
         }
         User user = await _context.Users.FirstOrDefaultAsync(a => a.Username == userDTO.Username && a.Password == userDTO.Password);
         if (user is null)
@@ -65,7 +68,11 @@ public class UsersController : ControllerBase
         bool isCached = _cacheService.Set<User>($"{user.Username}", user, this.expTime);
         if (!isCached)
             Log.Warning("I tried to cache user information but failed");
-        string jwtToken = await _jwtService.GenerateJwt(user);
-        return Ok(jwtToken);
+        string jwtToken = _jwtService.GenerateJwt(user);
+        return Ok(new AuthResponse()
+        {
+            Token = jwtToken,
+            Result = true,
+        });
     }
 }

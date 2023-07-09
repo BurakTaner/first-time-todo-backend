@@ -13,16 +13,16 @@ public class JwtService : IJwtService
 {
     private readonly TodosDbContext _context;
     private readonly JwtConfig _jwtConfig;
+    private readonly JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
     public JwtService(TodosDbContext context, IOptionsMonitor<JwtConfig> _optionsMonitor)
     {
         _context = context;
         _jwtConfig = _optionsMonitor.CurrentValue;
     }
 
-    public async Task<string> GenerateJwt(User user)
+    public string GenerateJwt(User user)
     {
         byte[] key = Encoding.ASCII.GetBytes(_jwtConfig.SecretKey);
-        JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
 
         SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor()
         {
