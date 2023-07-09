@@ -1,4 +1,5 @@
 
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -20,6 +21,7 @@ public class TodosController : ControllerBase
     private readonly TodosDbContext _context;
     private readonly ICacheService _cacheService;
     private readonly DateTimeOffset expTime = DateTimeOffset.Now.AddMinutes(3);
+    private readonly JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
     public TodosController(TodosDbContext context, ICacheService cacheService)
 
     {
@@ -27,9 +29,11 @@ public class TodosController : ControllerBase
         _cacheService = cacheService;
     }
 
-    [HttpGet("/todos/{userId}")]
-    public async Task<IActionResult> GetUserTodos(int userId)
+    [HttpGet("/todos")]
+    public async Task<IActionResult> GetUserTodos([FromHeader] string Authorization)
     {
+        JwtSecurityToken decodedJwt = jwtSecurityTokenHandler.ReadJwtToken(Authorization.Split("Bearer ")[1]);
+        int userId = Convert.ToInt32(decodedJwt.Claims.FirstOrDefault(a => a.Type == "Id")?.Value);
         IEnumerable<GetTodoDTO> result = _cacheService.Get<IEnumerable<GetTodoDTO>>($"user{userId}-todos");
         if (result is not null)
             return Ok(result);
@@ -67,12 +71,14 @@ public class TodosController : ControllerBase
     }
 
     [HttpPost("/todos")]
-    public async Task<IActionResult> CreateTodo([FromBody] CreateTodoDTO createTodoDTO)
+    public async Task<IActionResult> CreateTodo([FromBody] CreateTodoDTO createTodoDTO, [FromHeader] string Authorization)
     {
+        JwtSecurityToken decodedJwt = jwtSecurityTokenHandler.ReadJwtToken(Authorization.Split("Bearer ")[1]);
+        int userId = Convert.ToInt32(decodedJwt.Claims.FirstOrDefault(a => a.Type == "Id")?.Value);
         Todo todo = new Todo(
                 createTodoDTO.Title,
                 createTodoDTO.Description,
-                createTodoDTO.UserId
+                userId
                 );
         try
         {
