@@ -1,0 +1,52 @@
+version: "3.4"
+
+networks:
+  dev:
+    driver: bridge
+
+services:
+  todobackend:
+    image: todobackend
+    ports:
+      - "8080:80"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on: 
+      - "todo-db"
+      - "todo-redis"
+    environment:
+      - ConnectionStrings__TodoBackend=User ID=postgres;Password=postgres;Database=todobackend;Server=todo-db;Port=5432;IntegratedSecurity=true;Pooling=true
+      - ASPNETCORE_URLS=http://+80
+    container_name: "todobackend"
+    networks:
+      - dev 
+  
+  todo-db:
+    image: postgres:latest
+    ports:
+      - "5436:5432"
+    volumes:
+      - "todo_data:/var/lib/postgresql/data"
+    container_name: "todo-db"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DATABASE=todobackend
+    restart: always
+    networks:
+      - dev
+
+  todo-redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - "todo_data:/var/lib/redis/data"
+    restart: always
+    container_name: "todo-redis"
+    networks:
+      - dev
+
+volumes:
+  todo_data:
