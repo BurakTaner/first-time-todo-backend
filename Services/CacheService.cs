@@ -9,7 +9,7 @@ public class CacheService : ICacheService
 
     public CacheService()
     {
-        ConnectionMultiplexer connection = ConnectionMultiplexer.Connect("localhost:6379");
+        ConnectionMultiplexer connection = ConnectionMultiplexer.Connect("todo-redis:6379");
         _cache = connection.GetDatabase();
     }
 
