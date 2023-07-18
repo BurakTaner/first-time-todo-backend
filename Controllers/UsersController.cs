@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Serilog;
 using TodoBackend.Data;
 using TodoBackend.DTO;
@@ -53,12 +52,8 @@ public class UsersController : ControllerBase
         User cachedUser = _cacheService.Get<User>($"{userDTO.Username}");
         if (cachedUser is not null)
         {
-            string CjwtToken = _jwtService.GenerateJwt(cachedUser);
-            return Ok(new AuthResponse()
-            {
-                Token = CjwtToken,
-                Result = true
-            });
+            AuthResponse cachedAuthResponse = await _jwtService.GenerateJwt(cachedUser);
+            return Ok(cachedAuthResponse);
         }
         User user = await _context.Users.FirstOrDefaultAsync(a => a.Username == userDTO.Username && a.Password == userDTO.Password);
         if (user is null)
@@ -68,11 +63,27 @@ public class UsersController : ControllerBase
         bool isCached = _cacheService.Set<User>($"{user.Username}", user, this.expTime);
         if (!isCached)
             Log.Warning("I tried to cache user information but failed");
-        string jwtToken = _jwtService.GenerateJwt(user);
-        return Ok(new AuthResponse()
+        AuthResponse authResponse = await _jwtService.GenerateJwt(user);
+        return Ok(authResponse);
+    }
+    [HttpPost("/refreshToken")]
+    public async Task<IActionResult> GetRefreshToken([FromBody] TokenRequestDTO tokenRequestDTO)
+    {
+        if (ModelState.IsValid)
         {
-            Token = jwtToken,
-            Result = true,
+            AuthResponse authResponse = await _jwtService.GenerateRefreshToken(tokenRequestDTO);
+            if (authResponse is null)
+                return BadRequest(new AuthResponse()
+                {
+                    Result = false,
+                    Errors = new() { "Invalid token." }
+                });
+            return Ok(authResponse);
+        }
+        return BadRequest(new AuthResponse()
+        {
+            Result = false,
+            Errors = new() { "Invalid parameters." }
         });
     }
 }

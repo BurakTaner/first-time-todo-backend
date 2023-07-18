@@ -40,6 +40,17 @@ builder.Services.AddScoped<ICacheService, CacheService>();
 
 
 // JWT
+byte[] key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtConfig:SecretKey").Value);
+TokenValidationParameters parameters =
+        new TokenValidationParameters()
+        {
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateLifetime = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            RequireExpirationTime = true
+        };
+builder.Services.AddSingleton<TokenValidationParameters>(parameters);
 builder.Services.AddAuthentication(a =>
 {
     a.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -48,17 +59,8 @@ builder.Services.AddAuthentication(a =>
 })
     .AddJwtBearer(a =>
     {
-        byte[] key = Encoding.ASCII.GetBytes(builder.Configuration.GetSection("JwtConfig:SecretKey").Value);
 
         a.SaveToken = true;
-        a.TokenValidationParameters = new TokenValidationParameters()
-        {
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateLifetime = true,
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            RequireExpirationTime = true
-        };
     });
 builder.Services.Configure<JwtConfig>(builder.Configuration.GetSection("JwtConfig"));
 builder.Services.AddScoped<IJwtService, JwtService>();

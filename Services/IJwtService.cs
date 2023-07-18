@@ -1,8 +1,10 @@
+using TodoBackend.DTO;
 using TodoBackend.Models;
 
 namespace TodoBackend.Services;
 
 public interface IJwtService
 {
-    string GenerateJwt(User user);
+    Task<AuthResponse> GenerateJwt(User user);
+    Task<AuthResponse> GenerateRefreshToken(TokenRequestDTO tokenRequestDTO);
 }

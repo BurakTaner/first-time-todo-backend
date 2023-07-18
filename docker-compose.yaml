@@ -12,7 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    depends_on: 
+    depends_on:
       - "todo-db"
       - "todo-redis"
     environment:
@@ -20,8 +20,8 @@ services:
       - ASPNETCORE_URLS=http://+80
     container_name: "todobackend"
     networks:
-      - dev 
-  
+      - dev
+
   todo-db:
     image: postgres:latest
     ports:
